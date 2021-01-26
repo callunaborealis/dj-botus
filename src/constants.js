@@ -1,30 +1,28 @@
 exports.hailRequests = [
   // greeting + name
-  /(hey|hi|hello) botus/gim,
+  /^([h]?ello|[h]?ey|hi|ay|(was)?sup|yo|o[iy]) botus/gim,
   // name + greeting
-  /^botus (hey|hi|hello)/gim,
+  /^botus ([h]?ello|[h]?ey|hi|ay|(was)?sup|yo|o[iy])/gim,
   // name first
   /^botus[ ]?[,?!(...)]/gim,
 ];
 exports.hailResponses = [];
 
 exports.greetingRequests = [
-  // basic
-  "hey",
-  "hello",
-  "hi",
+  // greeting + name
+  /^([h]?ello|[h]?ey|hi|ay|(was)?sup|yo|o[iy]) botus$/gim,
+  // name + greeting
+  /^botus ([h]?ello|[h]?ey|hi|ay|(was)?sup|yo|o[iy])$/gim,
   // time of day
-  "good morning",
-  "good day",
-  "good afternoon",
-  "good evening",
-  "morning",
-  "afternoon",
-  "evening",
+  /^botus (good )?(mornin[g]?|day|afternoon|evenin[g]?|night|nite)[,.!]?/gim,
+  /^(good )?(mornin[g]?|day|afternoon|evenin[g]?|night|nite)[,.!]? botus/gim,
   // whats up
-  "whatsup",
-  "what's up",
-  "whats up",
+  /^botus what[']?s[ ]?up/gim,
+  /^what[']?s[ ]?up botus/gim,
+  /^botus wa[s]{1,100}up/gim,
+  /^wa[s]{1,100}up botus/gim,
+  /^botus wh[au]t[ ]?up/gim,
+  /^wh[au]t[ ]?up botus/gim,
 ];
 exports.greetingResponses = [
   () => "_barely nods._",

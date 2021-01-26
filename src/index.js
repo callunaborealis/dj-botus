@@ -1,7 +1,7 @@
 const { Client } = require("discord.js");
 
 const { initialiseDatabase } = require("./db");
-const { execute, skip, stop } = require("./music");
+const { playYoutubeURLRequests, execute, skip, stop } = require("./music");
 const {
   defaultResponses,
   howsItGoingRequests,
@@ -47,7 +47,7 @@ djBotus.on("message", async (message) => {
   const howsItGoingAsked = interpretRequest(message, howsItGoingRequests);
 
   if (isHailed) {
-    if (message.content.match(/play /gi)) {
+    if (interpretRequest(message, playYoutubeURLRequests)) {
       execute(message);
       return;
     }

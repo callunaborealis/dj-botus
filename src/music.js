@@ -2,9 +2,20 @@ const ytdl = require("ytdl-core");
 
 const queue = new Map();
 
+/**
+ * Ultimate YouTube link detector. See <https://regexr.com/3akf5>
+ *
+ * `(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?))`
+ */
+exports.playYoutubeURLRequests = [
+  // hey / hi / sup / hello / yo / oi / oy (optional) botus play [youtube link] (natural language processing)
+  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? play (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?)).*/gim,
+  // --p [youtube link] (shortcut)
+  /^--p (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?)).*/gim,
+];
+
 exports.execute = async (message) => {
   const serverQueue = queue.get(message.guild.id);
-  
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
@@ -51,7 +62,9 @@ exports.execute = async (message) => {
     }
   } else {
     serverQueue.songs.push(song);
-    return message.channel.send(`_nods and adds_ **${song.title}** _to the list._`);
+    return message.channel.send(
+      `_nods and adds_ **${song.title}** _to the list._`
+    );
   }
 };
 
