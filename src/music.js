@@ -1,13 +1,16 @@
 const isArray = require("lodash/isArray");
+const isFinite = require("lodash/isFinite");
+const isString = require("lodash/isString");
+const { v4: uuidv4 } = require("uuid");
 const ytdl = require("ytdl-core");
 
-const queue = new Map();
+const interserverQueue = new Map();
 
 exports.play = (guild, song) => {
-  const serverQueue = queue.get(guild.id);
+  const serverQueue = interserverQueue.get(guild.id);
   if (!song) {
     serverQueue.voiceChannel.leave();
-    queue.delete(guild.id);
+    interserverQueue.delete(guild.id);
     return;
   }
 
@@ -18,9 +21,9 @@ exports.play = (guild, song) => {
       exports.play(guild, serverQueue.songs[0]);
     })
     .on("error", (error) => console.error(error));
-  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  dispatcher.setVolumeLogarithmic(serverQueue.songs[0].volume / 5);
   serverQueue.textChannel.send(
-    `_loads the next record labelled_ **${song.title}**.`
+    `_loads the next record labelled_ **${song.title}** and turns the volume.`
   );
 };
 
@@ -31,6 +34,8 @@ const youtubeLinkPattern = new RegExp(
   /(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim
 );
 
+const volumeBeingSetPattern = new RegExp(/vol(ume|\.)?( as|at|to)? (\d)+/i);
+
 exports.playYoutubeURLRequests = [
   // hey / hi / sup / hello / yo / oi / oy (optional) botus play [youtube link] (natural language processing)
   /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? play (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
@@ -39,7 +44,7 @@ exports.playYoutubeURLRequests = [
 ];
 
 exports.execute = async (message) => {
-  const serverQueue = queue.get(message.guild.id);
+  const serverQueue = interserverQueue.get(message.guild.id);
 
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
@@ -60,9 +65,30 @@ exports.execute = async (message) => {
   }
 
   const songInfo = await ytdl.getInfo(youtubeLinks[0]);
+
+  const volume = (() => {
+    const defaultVolume = 5;
+    const volumeMatches = message.content.match(volumeBeingSetPattern);
+    if (isArray(volumeMatches)) {
+      const volumeOrder = volumeMatches[0];
+      if (isString(volumeOrder)) {
+        return volumeOrder.split(" ").reduce((prevOrDefault, v) => {
+          const candidate = parseInt(v, 10);
+          if (isFinite(candidate)) {
+            return candidate;
+          }
+          return prevOrDefault;
+        }, defaultVolume);
+      }
+    }
+    return defaultVolume;
+  })();
+
   const song = {
+    id: uuidv4(),
     title: songInfo.videoDetails.title,
     url: songInfo.videoDetails.video_url,
+    volume,
   };
 
   if (!serverQueue) {
@@ -71,11 +97,11 @@ exports.execute = async (message) => {
       voiceChannel: voiceChannel,
       connection: null,
       songs: [],
-      volume: 5,
-      playing: true,
+      volume,
+      playing: song.id,
     };
 
-    queue.set(message.guild.id, queueShape);
+    interserverQueue.set(message.guild.id, queueShape);
 
     queueShape.songs.push(song);
 
@@ -85,7 +111,7 @@ exports.execute = async (message) => {
       exports.play(message.guild, queueShape.songs[0]);
     } catch (err) {
       console.log(err);
-      queue.delete(message.guild.id);
+      interserverQueue.delete(message.guild.id);
       return message.channel.send(err);
     }
   } else {
@@ -96,8 +122,18 @@ exports.execute = async (message) => {
   }
 };
 
+/**
+ * Shows the playlist
+ */
+exports.list = (message) => {
+  const serverQueue = interserverQueue.get(message.guild.id);
+  if (!serverQueue) {
+    return message.channels.send("Nothing's playing at the moment");
+  }
+};
+
 exports.skip = (message) => {
-  const serverQueue = queue.get(message.guild.id);
+  const serverQueue = interserverQueue.get(message.guild.id);
   if (!message.member.voice.channel)
     return message.channel.send(
       "You have to be in a voice channel to stop the music!"
@@ -109,7 +145,7 @@ exports.skip = (message) => {
 };
 
 exports.stop = (message) => {
-  const serverQueue = queue.get(message.guild.id);
+  const serverQueue = interserverQueue.get(message.guild.id);
   if (!message.member.voice.channel) {
     return message.channel.send(
       "I can't stop the music if there isn't a voice channel."
