@@ -10,11 +10,14 @@ const {
 } = require("./music");
 const {
   defaultResponses,
-  howsItGoingRequests,
-  hailRequests,
-  howsItGoingResponses,
   gratitudeRequests,
   gratitudeResponses,
+  greetingRequests,
+  greetingResponses,
+  howsItGoingRequests,
+  hailRequests,
+  hailResponses,
+  howsItGoingResponses,
 } = require("./constants");
 const { respond, interpretRequest } = require("./reply");
 
@@ -57,6 +60,11 @@ djBotus.on("message", async (message) => {
     return execute(message);
   }
 
+  // Shortcut
+  if (message.content.match(/^--q$/gi)) {
+    return list(message);
+  }
+
   if (isHailed) {
     if (message.content.match(/list /gi)) {
       return list(message);
@@ -73,11 +81,19 @@ djBotus.on("message", async (message) => {
     return respond(message, howsItGoingResponses);
   }
 
+  if (interpretRequest(message, greetingRequests)) {
+    return respond(message, greetingResponses);
+  }
+
   if (interpretRequest(message, gratitudeRequests)) {
     return respond(message, gratitudeResponses);
   }
 
   if (isHailed) {
+    return respond(message, hailResponses);
+  }
+
+  if (message.content.startsWith("botus")) {
     return respond(message, defaultResponses);
   }
 });

@@ -31,9 +31,8 @@ exports.greetingRequests = [
 exports.greetingResponses = [
   () => "_barely nods._",
   () => "Mm-hm.",
-  (username) => `All in a day's work, ${username}.`,
-  () => "_gives a small bow._",
-  () => "_gives a thumb's up._",
+  (username) => `Yep, hello to you too, ${username}.`,
+  () => "_gives a lazy salute._",
   (username) => `_nods_ Nice to see you too, ${username}`,
   (username) => `Hello to you too, ${username}`,
 ];
