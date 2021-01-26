@@ -1,7 +1,13 @@
 const { Client } = require("discord.js");
 
 const { initialiseDatabase } = require("./db");
-const { playYoutubeURLRequests, execute, skip, stop } = require("./music");
+const {
+  playYoutubeURLRequests,
+  execute,
+  skip,
+  stop,
+  list,
+} = require("./music");
 const {
   defaultResponses,
   howsItGoingRequests,
@@ -52,6 +58,9 @@ djBotus.on("message", async (message) => {
   }
 
   if (isHailed) {
+    if (message.content.match(/list /gi)) {
+      return list(message);
+    }
     if (message.content.match(/skip /gi)) {
       return skip(message);
     }

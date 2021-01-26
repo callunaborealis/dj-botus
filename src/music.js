@@ -6,9 +6,15 @@ const ytdl = require("ytdl-core");
 
 const interserverQueue = new Map();
 
+const maxAllowableVolume = 8;
+
 exports.play = (guild, song) => {
   const serverQueue = interserverQueue.get(guild.id);
+  serverQueue.currentSong = serverQueue.songs[0];
   if (!song) {
+    serverQueue.textChannel.send(
+      "packs up the DJ kit_ Party's over, see ya around."
+    );
     serverQueue.voiceChannel.leave();
     interserverQueue.delete(guild.id);
     return;
@@ -17,13 +23,14 @@ exports.play = (guild, song) => {
   const dispatcher = serverQueue.connection
     .play(ytdl(song.url))
     .on("finish", () => {
-      serverQueue.songs.shift();
+      const prevSong = serverQueue.songs.shift();
+      serverQueue.previousSong = prevSong;
       exports.play(guild, serverQueue.songs[0]);
     })
     .on("error", (error) => console.error(error));
   dispatcher.setVolumeLogarithmic(serverQueue.songs[0].volume / 5);
   serverQueue.textChannel.send(
-    `_loads the next record labelled_ **${song.title}** and turns the volume.`
+    `_loads the next record labelled_ **${song.title}** _and turns the volume to_ **${serverQueue.songs[0].volume}**.`
   );
 };
 
@@ -74,7 +81,7 @@ exports.execute = async (message) => {
       if (isString(volumeOrder)) {
         return volumeOrder.split(" ").reduce((prevOrDefault, v) => {
           const candidate = parseInt(v, 10);
-          if (isFinite(candidate)) {
+          if (isFinite(candidate) && candidate <= maxAllowableVolume) {
             return candidate;
           }
           return prevOrDefault;
@@ -98,7 +105,8 @@ exports.execute = async (message) => {
       connection: null,
       songs: [],
       volume,
-      playing: song.id,
+      currentSong: song,
+      previousSong: null,
     };
 
     interserverQueue.set(message.guild.id, queueShape);
@@ -127,9 +135,23 @@ exports.execute = async (message) => {
  */
 exports.list = (message) => {
   const serverQueue = interserverQueue.get(message.guild.id);
-  if (!serverQueue) {
+  if (!serverQueue || !serverQueue.currentSong) {
     return message.channels.send("Nothing's playing at the moment");
   }
+  const currentSongId = serverQueue.currentSong.id;
+  const listOfSongsInAMessage = serverQueue.songs.reduce(
+    (eventualSongList, currentSongDetails, index) => {
+      const nowPlayingSuffix = (() => {
+        if (currentSongDetails.id === currentSongId) {
+          return " **(Now Playing)**";
+        }
+        return "";
+      })();
+      return `${eventualSongList}\n${index}: ${currentSongDetails.title} - ${currentSongDetails.url} (Volume: ${currentSongDetails.volume})${nowPlayingSuffix}\n`;
+    },
+    "Current songs in the playlist:\n\n"
+  );
+  return message.channels.send(listOfSongsInAMessage);
 };
 
 exports.skip = (message) => {
