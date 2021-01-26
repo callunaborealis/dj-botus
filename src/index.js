@@ -7,6 +7,9 @@ const {
   skip,
   stop,
   list,
+  listRequests,
+  skipRequests,
+  stopRequests,
 } = require("./music");
 const {
   defaultResponses,
@@ -44,39 +47,23 @@ djBotus.on("message", async (message) => {
     // Don't talk to itself or other bots
     return false;
   }
-  const isHailed = (() => {
-    if (message.mentions.has(djBotus.user.id)) {
-      // Respond to mentions of it
-      return true;
-    }
 
-    return interpretRequest(message, hailRequests);
-  })();
-
-  const howsItGoingAsked = interpretRequest(message, howsItGoingRequests);
-
-  // play youtube links
+  // Music
   if (interpretRequest(message, playYoutubeURLRequests)) {
     return execute(message);
   }
-
-  // Shortcut
-  if (message.content.match(/^--q$/gi)) {
+  if (interpretRequest(message, listRequests)) {
     return list(message);
   }
-
-  if (isHailed) {
-    if (message.content.match(/list /gi)) {
-      return list(message);
-    }
-    if (message.content.match(/skip /gi)) {
-      return skip(message);
-    }
-    if (message.content.match(/stop /gi)) {
-      return stop(message);
-    }
+  if (interpretRequest(message, skipRequests)) {
+    return skip(message);
+  }
+  if (interpretRequest(message, stopRequests)) {
+    return stop(message);
   }
 
+  // Social
+  const howsItGoingAsked = interpretRequest(message, howsItGoingRequests);
   if (howsItGoingAsked) {
     return respond(message, howsItGoingResponses);
   }
@@ -89,6 +76,14 @@ djBotus.on("message", async (message) => {
     return respond(message, gratitudeResponses);
   }
 
+  const isHailed = (() => {
+    if (message.mentions.has(djBotus.user.id)) {
+      // Respond to mentions of it
+      return true;
+    }
+
+    return interpretRequest(message, hailRequests);
+  })();
   if (isHailed) {
     return respond(message, hailResponses);
   }

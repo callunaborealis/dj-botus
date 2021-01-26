@@ -6,14 +6,14 @@ const ytdl = require("ytdl-core");
 
 const interserverQueue = new Map();
 
-const maxAllowableVolume = 8;
+const maxAllowableVolume = 10; // Any more and we might all be deaf
 
 exports.play = (guild, song) => {
   const serverQueue = interserverQueue.get(guild.id);
   serverQueue.currentSong = serverQueue.songs[0];
   if (!song) {
     serverQueue.textChannel.send(
-      "packs up the DJ kit_ Party's over, see ya around."
+      "_packs up the DJ kit and lights a cigarette_ That's all the songs you gave me. I gonna take five for a sec."
     );
     serverQueue.voiceChannel.leave();
     interserverQueue.delete(guild.id);
@@ -47,7 +47,25 @@ exports.playYoutubeURLRequests = [
   // hey / hi / sup / hello / yo / oi / oy (optional) botus play [youtube link] (natural language processing)
   /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? play (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
   // --p [youtube link] (shortcut)
-  /^--p (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
+  /^--(p|play) (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
+];
+
+exports.listRequests = [
+  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? list/gim,
+  // Shortcut
+  /^--(q|queue|playlist|list|ls)/gim,
+];
+
+exports.skipRequests = [
+  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? skip/gim,
+  // Shortcut
+  /^--(next|skip)/gim,
+];
+
+exports.stopRequests = [
+  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? (stop|go away|no more music|halt|enough music|you can go|that'?s enough)/gim,
+  // Shortcut
+  /^--stop/gim,
 ];
 
 exports.execute = async (message) => {
@@ -73,6 +91,7 @@ exports.execute = async (message) => {
 
   const songInfo = await ytdl.getInfo(youtubeLinks[0]);
 
+  let maxAllowableReached = false;
   const volume = (() => {
     const defaultVolume = 5;
     const volumeMatches = message.content.match(volumeBeingSetPattern);
@@ -84,12 +103,22 @@ exports.execute = async (message) => {
           if (isFinite(candidate) && candidate <= maxAllowableVolume) {
             return candidate;
           }
+          if (isFinite(candidate) && candidate > maxAllowableVolume) {
+            maxAllowableReached = true;
+            return maxAllowableVolume;
+          }
           return prevOrDefault;
         }, defaultVolume);
       }
     }
     return defaultVolume;
   })();
+
+  if (maxAllowableReached) {
+    message.channel.send(
+      `._shakes his head_ I won't play songs louder than a level of **${maxAllowableReached}**.`
+    );
+  }
 
   const song = {
     id: uuidv4(),
@@ -136,22 +165,26 @@ exports.execute = async (message) => {
 exports.list = (message) => {
   const serverQueue = interserverQueue.get(message.guild.id);
   if (!serverQueue || !serverQueue.currentSong) {
-    return message.channels.send("Nothing's playing at the moment");
+    return message.channel.send("Nothing's playing at the moment");
   }
   const currentSongId = serverQueue.currentSong.id;
   const listOfSongsInAMessage = serverQueue.songs.reduce(
     (eventualSongList, currentSongDetails, index) => {
       const nowPlayingSuffix = (() => {
         if (currentSongDetails.id === currentSongId) {
-          return " **(Now Playing)**";
+          return " **Now Playing**";
         }
         return "";
       })();
-      return `${eventualSongList}\n${index}: ${currentSongDetails.title} - ${currentSongDetails.url} (Volume: ${currentSongDetails.volume})${nowPlayingSuffix}\n`;
+      return `${eventualSongList}\n${index + 1}: ${
+        currentSongDetails.title
+      }${nowPlayingSuffix}\n${currentSongDetails.url}\nVolume: ${
+        currentSongDetails.volume
+      }\n`;
     },
-    "Current songs in the playlist:\n\n"
+    "Now playing:\n"
   );
-  return message.channels.send(listOfSongsInAMessage);
+  return message.channel.send(listOfSongsInAMessage);
 };
 
 exports.skip = (message) => {
