@@ -18,4 +18,6 @@ exports.respond = (message, listOfResponses) => {
   return message.channel.send(responseChoice(message.author.username));
 };
 
-exports.reply = () => {};
+exports.reply = (message, reply) => {
+  return message.reply(reply);
+};

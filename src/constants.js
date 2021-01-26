@@ -6,7 +6,11 @@ exports.hailRequests = [
   // name first
   /^botus[ ]?[,?!(...)]/gim,
 ];
-exports.hailResponses = [];
+exports.hailResponses = [
+  () => "Hey.",
+  (username) => `gives a reluctant wave to ${username}.`,
+  (username) => `Hi, ${username}.`,
+];
 
 exports.greetingRequests = [
   // greeting + name
@@ -54,16 +58,15 @@ exports.howsItGoingResponses = [
   () => "_shrugs._ It's alright, I guess.",
   (username) => `I'm good, ${username}.`,
   () => "Could be better I suppose. But alright.",
-  () => "_gives a thumb's up._",
+  () => "_gives a thumbs up._",
 ];
 
 exports.gratitudeRequests = [
-  "thanks",
-  "thank you",
-  "gracias",
-  "merci",
-  "appreciate it",
-  "very nice",
+  /^botus[,.!]? thank you/gim,
+  /^botus[,.!]? thanks/gim,
+  /^thank you[,.!]? botus/gim,
+  /^thanks[,.!]? botus/gim,
+  /^thanks for [^.,!?-]+,? botus/i,
 ];
 exports.gratitudeResponses = [
   (username) =>
@@ -76,7 +79,7 @@ exports.gratitudeResponses = [
   () => `_gives a brief wink and turns away._`,
 ];
 
-// Bot is mentioned but doesn't know how to respond. Botus will behave like this is awkwardly.
+// Bot is mentioned but doesn't know how to respond. Botus will behave awkwardly.
 exports.defaultResponses = [
   () => "_shrugs._",
   () => "_flips his hair and looks away, unconcerned._",
@@ -84,5 +87,9 @@ exports.defaultResponses = [
   (username) => `_gives a half-hearted wave to ${username}._`,
   (username) => `_turns to look at ${username} and then goes back to sleep._`,
   (username) => `_looks at ${username} and raises an eyebrow._`,
+  () => `_looks behind him and raises his hands in exasperation._`,
   () => "Uhhh... no idea what ya want there.",
+  (username) => `_lights a cigarette, ignoring what ${username} have said._`,
+  (username) =>
+    `gives a polite laugh then immediately walks away, completely forgetting what ${username} has said.`,
 ];

@@ -1,17 +1,41 @@
+const isArray = require("lodash/isArray");
 const ytdl = require("ytdl-core");
 
 const queue = new Map();
 
+exports.play = (guild, song) => {
+  const serverQueue = queue.get(guild.id);
+  if (!song) {
+    serverQueue.voiceChannel.leave();
+    queue.delete(guild.id);
+    return;
+  }
+
+  const dispatcher = serverQueue.connection
+    .play(ytdl(song.url))
+    .on("finish", () => {
+      serverQueue.songs.shift();
+      exports.play(guild, serverQueue.songs[0]);
+    })
+    .on("error", (error) => console.error(error));
+  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+  serverQueue.textChannel.send(
+    `_loads the next record labelled_ **${song.title}**.`
+  );
+};
+
 /**
  * Ultimate YouTube link detector. See <https://regexr.com/3akf5>
- *
- * `(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?))`
  */
+const youtubeLinkPattern = new RegExp(
+  /(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim
+);
+
 exports.playYoutubeURLRequests = [
   // hey / hi / sup / hello / yo / oi / oy (optional) botus play [youtube link] (natural language processing)
-  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? play (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?)).*/gim,
+  /^([h]?ello |[h]?ey |hi |ay |(wa[s]{0,100})?su[p]{1,100} |yo |o[iy] )?botus[,?!]? play (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
   // --p [youtube link] (shortcut)
-  /^--p (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?.*?(v=[^&\s]+).*)|(?:v(\/.*))|(channel\/.+)|(?:user\/(.+))|(?:results\?(search_query=.+))))?)|(?:youtu\.be(\/.*)?)).*/gim,
+  /^--p (?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim,
 ];
 
 exports.execute = async (message) => {
@@ -20,18 +44,22 @@ exports.execute = async (message) => {
   const voiceChannel = message.member.voice.channel;
   if (!voiceChannel) {
     return message.channel.send(
-      "I can't play any music if there isn't a voice channel."
+      "I'm not gonna play for no one. Someone get into a voice channel first."
     );
   }
   const permissions = voiceChannel.permissionsFor(message.client.user);
   if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
     return message.channel.send(
-      "Give me permissions for connecting and speaking in the voice channel, then we can have a party."
+      "Give me permissions for connecting and speaking in the voice channel, then we can party."
     );
   }
 
-  const args = message.content.split(" play ");
-  const songInfo = await ytdl.getInfo(args[1]);
+  const youtubeLinks = message.content.match(youtubeLinkPattern);
+  if (!isArray(youtubeLinks)) {
+    return message.channel.send("...I can't play _that_.");
+  }
+
+  const songInfo = await ytdl.getInfo(youtubeLinks[0]);
   const song = {
     title: songInfo.videoDetails.title,
     url: songInfo.videoDetails.video_url,
@@ -74,8 +102,9 @@ exports.skip = (message) => {
     return message.channel.send(
       "You have to be in a voice channel to stop the music!"
     );
-  if (!serverQueue)
+  if (!serverQueue) {
     return message.channel.send("There is no song that I could skip!");
+  }
   serverQueue.connection.dispatcher.end();
 };
 
@@ -92,25 +121,4 @@ exports.stop = (message) => {
 
   serverQueue.songs = [];
   serverQueue.connection.dispatcher.end();
-};
-
-exports.play = (guild, song) => {
-  const serverQueue = queue.get(guild.id);
-  if (!song) {
-    serverQueue.voiceChannel.leave();
-    queue.delete(guild.id);
-    return;
-  }
-
-  const dispatcher = serverQueue.connection
-    .play(ytdl(song.url))
-    .on("finish", () => {
-      serverQueue.songs.shift();
-      exports.play(guild, serverQueue.songs[0]);
-    })
-    .on("error", (error) => console.error(error));
-  dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-  serverQueue.textChannel.send(
-    `_gives a thumbs up, puts on his sunglasses and loads the next record labelled_ **${song.title}**.`
-  );
 };

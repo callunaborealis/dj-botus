@@ -46,45 +46,30 @@ djBotus.on("message", async (message) => {
 
   const howsItGoingAsked = interpretRequest(message, howsItGoingRequests);
 
+  // play youtube links
+  if (interpretRequest(message, playYoutubeURLRequests)) {
+    return execute(message);
+  }
+
   if (isHailed) {
-    if (interpretRequest(message, playYoutubeURLRequests)) {
-      execute(message);
-      return;
-    }
     if (message.content.match(/skip /gi)) {
-      skip(message);
-      return;
+      return skip(message);
     }
     if (message.content.match(/stop /gi)) {
-      stop(message);
-      return;
+      return stop(message);
     }
   }
 
   if (howsItGoingAsked) {
-    respond(message, howsItGoingResponses);
-    return;
+    return respond(message, howsItGoingResponses);
   }
 
-  let isBeingThanked = false;
-  for (let i = 0; i < gratitudeRequests.length; i++) {
-    if (
-      message.content.toLowerCase().match(gratitudeRequests[i]) &&
-      message.content.toLowerCase().match("botus")
-    ) {
-      isBeingThanked = true;
-      break;
-    }
-  }
-
-  if (isBeingThanked) {
-    respond(message, gratitudeResponses);
-    return;
+  if (interpretRequest(message, gratitudeRequests)) {
+    return respond(message, gratitudeResponses);
   }
 
   if (isHailed) {
-    respond(message, defaultResponses);
-    return;
+    return respond(message, defaultResponses);
   }
 });
 
