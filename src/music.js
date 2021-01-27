@@ -72,11 +72,11 @@ exports.execute = async (message) => {
   const serverQueue = interserverQueue.get(message.guild.id);
 
   const voiceChannel = message.member.voice.channel;
-  // if (!voiceChannel) {
-  //   return message.channel.send(
-  //     "I'm not gonna play for no one. Someone get into a voice channel first."
-  //   );
-  // }
+  if (!voiceChannel) {
+    return message.channel.send(
+      "I'm not gonna play for no one. Someone get into a voice channel first."
+    );
+  }
   const permissions = voiceChannel.permissionsFor(message.client.user);
   if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
     return message.channel.send(
