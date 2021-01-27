@@ -13,7 +13,7 @@ exports.play = (guild, song) => {
   serverQueue.currentSong = serverQueue.songs[0];
   if (!song) {
     serverQueue.textChannel.send(
-      "_packs up the DJ kit and lights a cigarette_ That's all the songs you gave me. I gonna take five for a sec."
+      "_packs up the DJ kit and lights a cigarette_ Alright, I gonna take five."
     );
     serverQueue.voiceChannel.leave();
     interserverQueue.delete(guild.id);
@@ -41,7 +41,7 @@ const youtubeLinkPattern = new RegExp(
   /(?:https?:\/\/)?(?:(?:(?:www\.?)?youtube\.com(?:\/(?:(?:watch\?\S*?(v=[^&\s]+)\S*)|(?:v(\/\S*))|(channel\/\S+)|(?:user\/(\S+))|(?:results\?(search_query=\S+))))?)|(?:youtu\.be(\/\S*)?))/gim
 );
 
-const volumeBeingSetPattern = new RegExp(/vol(ume|\.)?( as|at|to)? (\d)+/i);
+const volumeBeingSetPattern = new RegExp(/vol(ume)?( as| at| to)? (\d)+/i);
 
 exports.playYoutubeURLRequests = [
   // hey / hi / sup / hello / yo / oi / oy (optional) botus play [youtube link] (natural language processing)
@@ -72,11 +72,11 @@ exports.execute = async (message) => {
   const serverQueue = interserverQueue.get(message.guild.id);
 
   const voiceChannel = message.member.voice.channel;
-  if (!voiceChannel) {
-    return message.channel.send(
-      "I'm not gonna play for no one. Someone get into a voice channel first."
-    );
-  }
+  // if (!voiceChannel) {
+  //   return message.channel.send(
+  //     "I'm not gonna play for no one. Someone get into a voice channel first."
+  //   );
+  // }
   const permissions = voiceChannel.permissionsFor(message.client.user);
   if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
     return message.channel.send(
@@ -154,7 +154,7 @@ exports.execute = async (message) => {
   } else {
     serverQueue.songs.push(song);
     return message.channel.send(
-      `_nods and adds_ **${song.title}** _to the list._`
+      `_nods and adds_ **${song.title}** with volume at ${song.volume}_to the list._`
     );
   }
 };
@@ -172,17 +172,17 @@ exports.list = (message) => {
     (eventualSongList, currentSongDetails, index) => {
       const nowPlayingSuffix = (() => {
         if (currentSongDetails.id === currentSongId) {
-          return " **Now Playing**";
+          return " -- **Now Playing**";
         }
         return "";
       })();
       return `${eventualSongList}\n${index + 1}: ${
         currentSongDetails.title
-      }${nowPlayingSuffix}\n${currentSongDetails.url}\nVolume: ${
+      }${nowPlayingSuffix}\n<${currentSongDetails.url}>\nVolume: ${
         currentSongDetails.volume
       }\n`;
     },
-    "Now playing:\n"
+    "Current playlist (default):\n"
   );
   return message.channel.send(listOfSongsInAMessage);
 };
